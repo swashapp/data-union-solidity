@@ -1,7 +1,7 @@
 import { log, Address, BigInt } from '@graphprotocol/graph-ts'
 
-import { MemberJoined, MemberParted } from '../generated/templates/DataUnionSidechain/DataUnionSidechain'
 import { DataUnion, DataUnionStatsBucket, Member } from '../generated/schema'
+import { MemberJoined, MemberParted } from '../generated/templates/DataUnion/DataUnionTemplate'
 
 export function handleMemberJoined(event: MemberJoined): void {
     let duAddress = event.address
@@ -28,6 +28,7 @@ export function handleMemberParted(event: MemberParted): void {
 
     let memberId = getMemberId(memberAddress, duAddress)
     let member = Member.load(memberId)
+
     member.status = 'INACTIVE'
     member.save()
 

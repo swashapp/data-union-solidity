@@ -28,8 +28,9 @@ const {
 
 import config from "../../config"
 const { mainnet, xdai } = (ENV === "production" ? config.production : config.dev)
+const key = KEY || mainnet.keys[0]
 
-if (!KEY) {
+if (!key) {
     throw new Error("Please set environment variable KEY to the private key that does the deployment")
 }
 
@@ -48,7 +49,6 @@ import DataUnionFactoryMainnetJson from "../artifacts/contracts/DataUnionFactory
 // import { DataUnionSidechain, TestToken, BinanceAdapter, MockTokenMediator } from '../typechain'
 
 import Debug from "debug"
-import { DataUnionFactoryMainnet, DataUnionFactorySidechain } from "../typechain"
 const log = Debug("Streamr:du:script:deploy")
 
 // class LoggingProvider extends JsonRpcProvider {
@@ -67,16 +67,22 @@ if (GASPRICE_GWEI) { ethersOptions.gasPrice = parseUnits(GASPRICE_GWEI, "gwei") 
 const mainnetProvider = mainnet.url ? new JsonRpcProvider(mainnet.url) : getDefaultProvider()
 const sidechainProvider = new JsonRpcProvider(xdai.url ?? "https://rpc.xdaichain.com/")
 
-const sidechainWallet = new Wallet(KEY, sidechainProvider)
-const mainnetWallet = new Wallet(KEY, mainnetProvider)
+const sidechainWallet = new Wallet(key, sidechainProvider)
+const mainnetWallet = new Wallet(key, mainnetProvider)
 
 async function deploy({ abi, bytecode, contractName }: { abi: any, bytecode: string, contractName: string }, wallet: Wallet, args: any[] = []) { // eslint-disable-line @typescript-eslint/no-explicit-any
     log(`Deploying ${contractName} from ${wallet.address}, bytecode size = ${bytecode.length / 2 - 1} bytes`)
     const factory = new ContractFactory(abi, bytecode, wallet)
     const contract = await factory.deploy(...args, ethersOptions)
-    log("Transaction hash:    %s", contract.deployTransaction.hash)
-    log("Gas price:           %s Gwei", contract.deployTransaction.gasPrice ? formatUnits(contract.deployTransaction.gasPrice, "gwei") : "?")
-    const receipt = await contract.deployTransaction.wait()
+    const tx = contract.deployTransaction
+    log("Transaction hash:    %s", tx.hash)
+    if (tx.gasPrice) {
+        log("Gas price:           %s Gwei", formatUnits(tx.gasPrice, "gwei"))
+    } else if (tx.maxFeePerGas && tx.maxPriorityFeePerGas && tx.gasLimit) {
+        log("Max fee              %s Gwei", formatUnits(tx.maxFeePerGas.mul(tx.gasLimit), "gwei"))
+        log("Max priority fee     %s Gwei", formatUnits(tx.maxPriorityFeePerGas.mul(tx.gasLimit), "gwei"))
+    }
+    const receipt = await tx.wait()
     log("Gas used:            %s", receipt.gasUsed)
     log("Cumulative gas used: %s", receipt.cumulativeGasUsed)
     log("Deployed code size:  %s", (await wallet.provider.getCode(contract.address)).length / 2 - 1)

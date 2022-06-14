@@ -8,8 +8,8 @@
             "amb": "0x4C36d2919e407f0Cc2Ee3c993ccF8ac26d9CE64e",
             "ens": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
             "coreApi": "0xf3E5A65851C3779f468c9EcB32E6f25D9D68601a",
-            "dataUnionFactory": "0x6d201374D7c28EF1c3cc1b6FA300f06110B597A3",
-            "dataUnionTemplate": "0x93965Af01C326F2308AAcB778EF96d7e29dEf515",
+            "dataUnionFactory": "0xE41439BF434F9CfBF0153f5231C205d4ae0C22e3",
+            "dataUnionTemplate": "0x67352e3F7dBA907aF877020aE7E9450C0029C70c",
             "uniswapAdapter": "0xbe99db4ea1964ea9a9e80de41517901da6ef9307",
             "chainId": 1
         },
@@ -19,8 +19,8 @@
             "oldToken": "0xE4a2620edE1058D61BEe5F45F6414314fdf10548",
             "oldTokenMediator": "0x7d55f9981d4E10A193314E001b96f72FCc901e40",
             "amb": "0x75Df5AF045d91108662D8080fD1FEFAd6aA0bb59",
-            "dataUnionFactory": "0xCda36b4A69f4349052D995d2D8B4f3E8A70Aa3Af",
-            "dataUnionTemplate": "0xD0C720e99Bd39311614f292d8B0B4e351Bde157c",
+            "dataUnionFactory": "0xFCE1FBFAaE61861B011B379442c8eE1DC868ABd0",
+            "dataUnionTemplate": "0xaCF9e8134047eDc671162D9404BF63a587435bAa",
             "url": "https://rpc.xdaichain.com/",
             "chainId": 100
         }
@@ -31,13 +31,25 @@
             "tokenMediator": "0xedD2aa644a6843F2e5133Fe3d6BD3F4080d97D9F",
             "oldToken": "0x6d0F3bF9aD2455b4F62f22fFD21317e1E3eEFE5C",
             "url": "http://10.200.10.1:8545",
-            "chainId": 8995
+            "chainId": 8995,
+            "keys": [
+                "0x4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7",
+                "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0",
+                "0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae",
+                "0xe5af7834455b7239881b85be89d905d6881dcb4751063897f12be1b0dd546bdb"
+            ]
         },
         "xdai": {
             "token": "0x73Be21733CC5D08e1a14Ea9a399fb27DB3BEf8fF",
             "tokenMediator": "0xedD2aa644a6843F2e5133Fe3d6BD3F4080d97D9F",
             "url": "http://10.200.10.1:8546",
-            "chainId": 8997
+            "chainId": 8997,
+            "keys": [
+                "0x4d5db4107d237df6a3d58ee5f70ae63d73d7658d4026f2eefd2f204c81682cb7",
+                "0x5e98cce00cff5dea6b454889f359a4ec06b9fa6b88e9d69b86de8e1c81887da0",
+                "0x4059de411f15511a85ce332e7a428f36492ab4e87c7830099dadbf130f1896ae",
+                "0xe5af7834455b7239881b85be89d905d6881dcb4751063897f12be1b0dd546bdb"
+            ]
         }
     }
 }

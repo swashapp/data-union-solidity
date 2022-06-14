@@ -3,18 +3,17 @@
 pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./IERC677.sol";
+import "../IERC677.sol";
 // TODO: switch to "@openzeppelin/contracts/access/Ownable.sol";
-import "./Ownable.sol";
-import "./xdai-mainnet-bridge/IERC20Receiver.sol";
-import "./IERC677Receiver.sol";
-import "./IWithdrawModule.sol";
-import "./IJoinListener.sol";
-import "./IPartListener.sol";
-import "./LeaveConditionCode.sol";
+import "../Ownable.sol";
+import "../xdai-mainnet-bridge/IERC20Receiver.sol";
+import "../IERC677Receiver.sol";
+import "../IWithdrawModule.sol";
+import "../IJoinListener.sol";
+import "../IPartListener.sol";
+import "../LeaveConditionCode.sol";
 
-contract DataUnionSidechain is Ownable, IERC20Receiver, IERC677Receiver {
-
+contract DataUnionTemplate is Ownable, IERC677Receiver {
     // Used to describe both members and join part agents
     enum ActiveStatus {NONE, ACTIVE, INACTIVE}
 
@@ -58,8 +57,6 @@ contract DataUnionSidechain is Ownable, IERC20Receiver, IERC677Receiver {
 
     // Constant properties (only set in initialize)
     IERC677 public token;
-    address public tokenMediator;
-    address public dataUnionMainnet;
 
     // Modules
     IWithdrawModule public withdrawModule;
@@ -98,9 +95,7 @@ contract DataUnionSidechain is Ownable, IERC20Receiver, IERC677Receiver {
     function initialize(
         address initialOwner,
         address tokenAddress,
-        address tokenMediatorAddress,
         address[] memory initialJoinPartAgents,
-        address mainnetDataUnionAddress,
         uint256 defaultNewMemberEth,
         uint256 initialAdminFeeFraction,
         uint256 initialDataUnionFeeFraction,
@@ -110,8 +105,6 @@ contract DataUnionSidechain is Ownable, IERC20Receiver, IERC677Receiver {
         owner = msg.sender; // set real owner at the end. During initialize, addJoinPartAgents can be called by owner only
         token = IERC677(tokenAddress);
         addJoinPartAgents(initialJoinPartAgents);
-        tokenMediator = tokenMediatorAddress;
-        dataUnionMainnet = mainnetDataUnionAddress;
         setFees(initialAdminFeeFraction, initialDataUnionFeeFraction);
         setDataUnionBeneficiary(initialDataUnionBeneficiary);
         setNewMemberEth(defaultNewMemberEth);
@@ -210,13 +203,6 @@ contract DataUnionSidechain is Ownable, IERC20Receiver, IERC677Receiver {
     function onTokenTransfer(address, uint256, bytes calldata) override external {
         // guarding refreshRevenue is pointless, but this prevents DU from receiving unexpected ERC677 tokens
         require(msg.sender == address(token), "error_onlyTokenContract");
-        refreshRevenue();
-    }
-
-    /**
-     * Tokenbridge callback function
-     */
-    function onTokenBridged(address, uint256, bytes memory) override public {
         refreshRevenue();
     }
 
@@ -414,6 +400,9 @@ contract DataUnionSidechain is Ownable, IERC20Receiver, IERC677Receiver {
     // WITHDRAW FUNCTIONS
     //------------------------------------------------------------
 
+    /**
+     * @param sendToMainnet Deprecated
+     */
     function withdrawMembers(address[] calldata members, bool sendToMainnet)
         external
         returns (uint256)
@@ -425,6 +414,9 @@ contract DataUnionSidechain is Ownable, IERC20Receiver, IERC677Receiver {
         return withdrawn;
     }
 
+    /**
+     * @param sendToMainnet Deprecated
+     */
     function withdrawAll(address member, bool sendToMainnet)
         public
         returns (uint256)
@@ -433,6 +425,9 @@ contract DataUnionSidechain is Ownable, IERC20Receiver, IERC677Receiver {
         return withdraw(member, getWithdrawableEarnings(member), sendToMainnet);
     }
 
+    /**
+     * @param sendToMainnet Deprecated
+     */
     function withdraw(address member, uint amount, bool sendToMainnet)
         public
         returns (uint256)
@@ -441,6 +436,9 @@ contract DataUnionSidechain is Ownable, IERC20Receiver, IERC677Receiver {
         return _withdraw(member, member, amount, sendToMainnet);
     }
 
+    /**
+     * @param sendToMainnet Deprecated
+     */
     function withdrawAllTo(address to, bool sendToMainnet)
         external
         returns (uint256)
@@ -449,6 +447,9 @@ contract DataUnionSidechain is Ownable, IERC20Receiver, IERC677Receiver {
         return withdrawTo(to, getWithdrawableEarnings(msg.sender), sendToMainnet);
     }
 
+    /**
+     * @param sendToMainnet Deprecated
+     */
     function withdrawTo(address to, uint amount, bool sendToMainnet)
         public
         returns (uint256)
@@ -509,7 +510,7 @@ contract DataUnionSidechain is Ownable, IERC20Receiver, IERC677Receiver {
      * A new signature needs to be obtained for each subsequent future withdraw.
      * @param fromSigner whose earnings are being withdrawn
      * @param to the address the tokens will be sent to (instead of `msg.sender`)
-     * @param sendToMainnet if the tokens should be sent to mainnet or only withdrawn into sidechain address
+     * @param sendToMainnet Deprecated
      * @param signature from the member, see `signatureIsValid` how signature generated for unlimited amount
      */
     function withdrawAllToSigned(
@@ -533,7 +534,7 @@ contract DataUnionSidechain is Ownable, IERC20Receiver, IERC677Receiver {
      * @param fromSigner whose earnings are being withdrawn
      * @param to the address the tokens will be sent to (instead of `msg.sender`)
      * @param amount of tokens to withdraw
-     * @param sendToMainnet if the tokens should be sent to mainnet or only withdrawn into sidechain address
+     * @param sendToMainnet Deprecated
      * @param signature from the member, see `signatureIsValid` how signature generated for unlimited amount
      */
     function withdrawToSigned(
@@ -578,21 +579,17 @@ contract DataUnionSidechain is Ownable, IERC20Receiver, IERC677Receiver {
 
     /**
      * Default DU 2.1 withdraw functionality, can be overridden with a withdrawModule.
+     * @param sendToMainnet Deprecated
      */
     function _defaultWithdraw(address from, address to, uint amount, bool sendToMainnet)
         internal
     {
-        if (sendToMainnet) {
-            // tokenMediator sends tokens over the bridge it's assigned to
-            require(tokenMediator != address(0), "error_sendToMainnetNotAvailable");
-            require(token.transferAndCall(tokenMediator, amount, abi.encodePacked(to)), "error_transfer");
-        } else {
-            // transferAndCall also enables transfers over another token bridge
-            //   in this case to=another bridge's tokenMediator, and from=recipient on the other chain
-            // this follows the tokenMediator API: data will contain the recipient address, which is the same as sender but on the other chain
-            // in case transferAndCall recipient is not a tokenMediator, the data can be ignored (it contains the DU member's address)
-            require(token.transferAndCall(to, amount, abi.encodePacked(from)), "error_transfer");
-        }
+        require(!sendToMainnet, "error_sendToMainnetDeprecated");
+        // transferAndCall also enables transfers over another token bridge
+        //   in this case to=another bridge's tokenMediator, and from=recipient on the other chain
+        // this follows the tokenMediator API: data will contain the recipient address, which is the same as sender but on the other chain
+        // in case transferAndCall recipient is not a tokenMediator, the data can be ignored (it contains the DU member's address)
+        require(token.transferAndCall(to, amount, abi.encodePacked(from)), "error_transfer");
     }
 
     //------------------------------------------------------------

@@ -82,12 +82,18 @@ contract LimitWithdrawModule is DataUnionModule, IWithdrawModule, IJoinListener,
         return blackListed[member] ? 0 : maxWithdrawable;
     }
 
+    /** Admin function to set join timestamp, e.g. for migrating old users */
+    function setJoinTimestamp(address member, uint timestamp) external onlyOwner {
+        memberJoinTimestamp[member] = timestamp;
+    }
+
     /**
      * When a withdraw happens in the DU, tokens are transferred to the withdrawModule, then this function is called.
      * When we revert here, the whole withdraw transaction is reverted.
      */
     function onWithdraw(address member, address to, IERC677 token, uint amountWei) override external onlyDataUnion {
         require(amountWei >= minimumWithdrawTokenWei, "error_withdrawAmountBelowMinimum");
+        require(memberJoinTimestamp[member] > 0, "error_mustJoinBeforeWithdraw");
         require(block.timestamp >= memberJoinTimestamp[member] + requiredMemberAgeSeconds, "error_memberTooNew");
 
         // if the withdraw period is over, we reset the counters

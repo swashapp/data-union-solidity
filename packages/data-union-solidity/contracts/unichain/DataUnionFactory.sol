@@ -3,33 +3,39 @@
 pragma solidity 0.8.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "./CloneLib.sol";
-import "./xdai-mainnet-bridge/IAMB.sol";
-import "./xdai-mainnet-bridge/ITokenMediator.sol";
+import "@openzeppelin/contracts/proxy/Clones.sol";
+import "../xdai-mainnet-bridge/IAMB.sol";
+import "./DataUnionTemplate.sol";
 // TODO: switch to "@openzeppelin/contracts/access/Ownable.sol";
-import "./Ownable.sol";
+import "../Ownable.sol";
 
-contract DataUnionFactorySidechain is Ownable {
+contract DataUnionFactory is Ownable {
     event SidechainDUCreated(address indexed mainnet, address indexed sidenet, address indexed owner, address template);
+    event DUCreated(address indexed du, address indexed owner, address template);
     event UpdateNewDUInitialEth(uint amount);
     event UpdateNewDUOwnerInitialEth(uint amount);
     event UpdateDefaultNewMemberInitialEth(uint amount);
     event DUInitialEthSent(uint amountWei);
     event OwnerInitialEthSent(uint amountWei);
 
-    address public dataUnionSidechainTemplate;
+    address public dataUnionTemplate;
+    address public defaultToken;
 
     // when sidechain DU is created, the factory sends a bit of sETH to the DU and the owner
     uint public newDUInitialEth;
     uint public newDUOwnerInitialEth;
     uint public defaultNewMemberEth;
 
-    constructor(address _dataUnionSidechainTemplate) Ownable(msg.sender) {
-        setTemplate(_dataUnionSidechainTemplate);
+    constructor(
+        address _dataUnionTemplate,
+        address _defaultToken
+    ) Ownable(msg.sender) {
+        setTemplate(_dataUnionTemplate);
+        defaultToken = _defaultToken;
     }
 
-    function setTemplate(address _dataUnionSidechainTemplate) public onlyOwner {
-        dataUnionSidechainTemplate = _dataUnionSidechainTemplate;
+    function setTemplate(address _dataUnionTemplate) public onlyOwner {
+        dataUnionTemplate = _dataUnionTemplate;
     }
 
     // contract is payable so it can receive and hold the new member eth stipends
@@ -50,48 +56,51 @@ contract DataUnionFactorySidechain is Ownable {
         emit UpdateDefaultNewMemberInitialEth(val);
     }
 
-    function sidechainAddress(address mainnetAddress)
-        public view
-        returns (address proxy)
+    function deployNewDataUnion(
+        address payable owner,
+        uint256 adminFeeFraction,
+        uint256 duFeeFraction,
+        address duBeneficiary,
+        address[] memory agents
+    )
+        public
+        returns (address)
     {
-        return CloneLib.predictCloneAddressCreate2(dataUnionSidechainTemplate, address(this), bytes32(uint256(uint160(mainnetAddress))));
+        return deployNewDataUnionUsingToken(
+            defaultToken,
+            owner,
+            agents,
+            adminFeeFraction,
+            duFeeFraction,
+            duBeneficiary
+        );
     }
-
-    function amb(address _mediator) public view returns (IAMB) {
-        return IAMB(ITokenMediator(_mediator).bridgeContract());
-    }
-
     /**
      * @dev This function is called over the bridge by the DataUnionMainnet.initialize function
      * @dev Hence must be called by the AMB. Use MockAMB for testing.
      * @dev CREATE2 salt = mainnet_address.
      */
-    function deployNewDUSidechain(
+    function deployNewDataUnionUsingToken(
         address token,
-        address mediator,
         address payable owner,
         address[] memory agents,
         uint256 initialAdminFeeFraction,
         uint256 initialDataUnionFeeFraction,
         address initialDataUnionBeneficiary
     ) public returns (address) {
-        require(msg.sender == address(amb(mediator)), "only_AMB");
-        address duMainnet = amb(mediator).messageSender();
-        bytes32 salt = bytes32(uint256(uint160(duMainnet)));
-        bytes memory data = abi.encodeWithSignature(
-            "initialize(address,address,address,address[],address,uint256,uint256,uint256,address)",
+        address payable du = payable(Clones.clone(dataUnionTemplate));
+        DataUnionTemplate(du).initialize(
             owner,
             token,
-            mediator,
             agents,
-            duMainnet,
             defaultNewMemberEth,
             initialAdminFeeFraction,
             initialDataUnionFeeFraction,
             initialDataUnionBeneficiary
         );
-        address payable du = CloneLib.deployCodeAndInitUsingCreate2(CloneLib.cloneBytecode(dataUnionSidechainTemplate), data, salt);
-        emit SidechainDUCreated(duMainnet, du, owner, dataUnionSidechainTemplate);
+        
+        emit SidechainDUCreated(du, du, owner, dataUnionTemplate);
+        emit DUCreated(du, owner, dataUnionTemplate);
 
         // continue whether or not send succeeds
         if (newDUInitialEth != 0 && address(this).balance >= newDUInitialEth) {
