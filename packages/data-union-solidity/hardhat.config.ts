@@ -1,5 +1,7 @@
 import { HardhatUserConfig } from "hardhat/types"
 import "@nomiclabs/hardhat-waffle"
+require('@openzeppelin/hardhat-upgrades');
+
 
 import "hardhat-typechain"
 import "solidity-coverage"
