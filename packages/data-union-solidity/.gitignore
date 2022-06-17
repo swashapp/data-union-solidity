@@ -2,7 +2,9 @@ node_modules
 coverage
 .coverage_contracts
 .coverage_artifacts
-/build
-/packages/*/build
-/packages/*/generated
-.idea
+build
+coverage.json
+artifacts
+deployments
+typechain
+cache
