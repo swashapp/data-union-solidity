@@ -130,7 +130,6 @@ contract LimitWithdrawModuleUpgradable is DataUnionModuleUpgradable, IWithdrawMo
         withdrawnDuringPeriod[member] = WithdrawDuringPeriod;
     }
 
-    /** Admin function to set joined user information, e.g. for migrating old users */
     function updateUser(address member) public {
         if(memberJoinTimestamp[member] > 0){
             return;
@@ -148,7 +147,7 @@ contract LimitWithdrawModuleUpgradable is DataUnionModuleUpgradable, IWithdrawMo
         blackListed[member] = true;
     }
 
-    /** Admin function to set blacklist, e.g. for migrating old users */
+    /** Admin function to set batch blacklist, e.g. for migrating old users */
     function setBlackListedBatched(address[] memory members) external onlyOwner {
         for(uint idx = 0; idx < members.length; idx++){
             blackListed[members[idx]] = true;
