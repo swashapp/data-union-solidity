@@ -122,8 +122,8 @@ contract LimitWithdrawModuleUpgradable is DataUnionModuleUpgradable, IWithdrawMo
         withdrawnDuringPeriod[member] = amount;
     }
 
-    /** Admin function to set joined user information, e.g. for migrating old users */
-    function setUserJoinInfo(address member, uint joinTime, uint withdrawTime, uint WithdrawDuringPeriod) public onlyOwner {
+    /** Private function to set joined user information, e.g. for migrating old users */
+    function setUserJoinInfo(address member, uint joinTime, uint withdrawTime, uint WithdrawDuringPeriod) private {
         joinedMemberList.push(member);
         memberJoinTimestamp[member] = joinTime;
         lastWithdrawTimestamp[member] = withdrawTime;
