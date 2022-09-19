@@ -194,9 +194,10 @@ contract LimitWithdrawModuleUpgradable is DataUnionModuleUpgradable, IWithdrawMo
      */
     function onWithdraw(address member, address to, IERC677 token, uint amountWei) override external onlyDataUnion {
         updateUser(member);
-        require(amountWei >= minimumWithdrawTokenWei, "error_withdrawAmountBelowMinimum");
-        require(memberJoinTimestamp[member] > 0, "error_mustJoinBeforeWithdraw");
         bool whiteListed = isWhiteListed(to);
+        require(whiteListed || amountWei >= minimumWithdrawTokenWei, "error_withdrawAmountBelowMinimum");
+        require(whiteListed || memberJoinTimestamp[member] > 0, "error_mustJoinBeforeWithdraw");
+
         require(whiteListed || block.timestamp >= memberJoinTimestamp[member] + requiredMemberAgeSeconds, "error_memberTooNew");
 
         // if the withdraw period is over, we reset the counters
